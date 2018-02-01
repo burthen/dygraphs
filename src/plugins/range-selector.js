@@ -161,8 +161,8 @@ rangeSelector.prototype.updateVisibility_ = function() {
  * Resizes the range selector.
  */
 rangeSelector.prototype.resize_ = function() {
-  function setElementRect(canvas, context, rect) {
-    var canvasScale = utils.getContextPixelRatio(context);
+  function setElementRect(canvas, context, rect, pixelRatioOption) {
+    var canvasScale = pixelRatioOption || utils.getContextPixelRatio(context);
 
     canvas.style.top = rect.y + 'px';
     canvas.style.left = rect.x + 'px';
@@ -189,8 +189,9 @@ rangeSelector.prototype.resize_ = function() {
     h: this.getOption_('rangeSelectorHeight')
   };
 
-  setElementRect(this.bgcanvas_, this.bgcanvas_ctx_, this.canvasRect_);
-  setElementRect(this.fgcanvas_, this.fgcanvas_ctx_, this.canvasRect_);
+  var pixelRatioOption = this.dygraph_.getNumericOption('pixelRatio');
+  setElementRect(this.bgcanvas_, this.bgcanvas_ctx_, this.canvasRect_, pixelRatioOption);
+  setElementRect(this.fgcanvas_, this.fgcanvas_ctx_, this.canvasRect_, pixelRatioOption);
 };
 
 /**
@@ -635,13 +636,23 @@ rangeSelector.prototype.computeCombinedSeriesAndLimits_ = function() {
   var labels = g.getLabels();
   var includeSeries = new Array(numColumns);
   var anySet = false;
+  var visibility = g.visibility();
+  var inclusion = [];
+
   for (i = 1; i < numColumns; i++) {
     var include = this.getOption_('showInRangeSelector', labels[i]);
-    includeSeries[i] = include;
+    inclusion.push(include);
     if (include !== null) anySet = true;  // it's set explicitly for this series
   }
-  if (!anySet) {
-    for (i = 0; i < includeSeries.length; i++) includeSeries[i] = true;
+
+  if (anySet) {
+    for (i = 1; i < numColumns; i++) {
+      includeSeries[i] = inclusion[i - 1];
+    }
+  } else {
+    for (i = 1; i < numColumns; i++) {
+      includeSeries[i] = visibility[i - 1];
+    }
   }
 
   // Create a combined series (average of selected series values).
